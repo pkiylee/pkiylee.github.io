@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="云游戏导航平台，无需下载，即点即玩各类热门云游戏">
+  <title>云游戏导航 - 无需下载，即点即玩</title>
+  
+  <!-- 预加载关键资源 -->
+  <link rel="preload" href="https://cdn.tailwindcss.com" as="script">
+  <link rel="preload" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.2/css/all.min.css" as="style">
+  
+  <!-- 样式表 -->
+  <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.2/css/all.min.css" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Tailwind 配置 -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: {
+              light: '#2c3e50',
+              dark: '#a5b4fc'
+            },
+            secondary: {
+              light: '#007bff',
+              dark: '#60a5fa'
+            },
+            accent: {
+              light: '#ff4757',
+              dark: '#ff6b81'
+            },
+            neutral: {
+              100: '#f4f6f9',
+              200: '#e4e7eb',
+              700: '#4a5568',
+              800: '#2d3748',
+              dark: {
+                100: '#1e293b',
+                200: '#334155',
+                700: '#94a3b8',
+                800: '#e2e8f0'
+              }
+            }
+          },
+          fontFamily: {
+            inter: ['Inter', 'Segoe UI', 'Arial', 'sans-serif'],
+          },
+          boxShadow: {
+            'card': '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03)',
+            'card-hover': '0 20px 30px -10px rgba(0, 0, 0, 0.1)',
+            'dark-card': '0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.15)',
+            'dark-card-hover': '0 20px 30px -10px rgba(0, 0, 0, 0.3)'
+          },
+        },
+      }
+    }
+  </script>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .fade-in {
+      animation: fadeIn 0.6s ease-in-out;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .card-hover {
+      transition: all 0.3s ease;
+    }
+    
+    .card-hover:hover {
+      transform: translateY(-5px);
+    }
+    
+    .dark .card-hover {
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.15);
+    }
+    
+    .dark .card-hover:hover {
+      box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.3);
+    }
+    
+    .tooltip {
+      visibility: hidden;
+      position: absolute;
+      bottom: -40px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: '#1e293b';
+      color: white;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    
+    .has-tooltip:hover .tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
+    
+    .loading-spinner {
+      width: 3rem;
+      height: 3rem;
+      border: 4px solid #007bff;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    .dark .loading-spinner {
+      border-color: #60a5fa;
+      border-top-color: transparent;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .favorite-badge {
+      position: absolute;
+      top: 0.5rem;
+      left: 0.5rem;
+      background-color: white;
+      border-radius: 9999px;
+      padding: 0.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      cursor: pointer;
+      z-index: 10;
+    }
+    
+    .dark .favorite-badge {
+      background-color: '#1e293b';
+    }
+
+    /* 新增的ESP32加载界面样式 */
+    .esp32-loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      transition: opacity 0.5s ease-out;
+    }
+    
+    .dark .esp32-loading {
+      background: #1e293b;
+    }
+    
+    .esp32-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(0, 123, 255, 0.2);
+      border-top-color: #007bff;
+      border-radius: 50%;
+      animation: esp32-spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+    
+    .dark .esp32-spinner {
+      border-top-color: #60a5fa;
+    }
+    
+    .esp32-loading-text {
+      color: #333;
+      font-size: 1rem;
+      margin-top: 16px;
+    }
+    
+    .dark .esp32-loading-text {
+      color: #e2e8f0;
+    }
+    
+    @keyframes esp32-spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* 进度条 */
+    .loading-progress-container {
+      width: 200px;
+      height: 4px;
+      background-color: #e2e8f0;
+      border-radius: 2px;
+      margin-top: 20px;
+      overflow: hidden;
+    }
+    
+    .loading-progress-bar {
+      height: 100%;
+      background-color: #007bff;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    
+    .dark .loading-progress-bar {
+      background-color: #60a5fa;
+    }
+    
+    /* 页面过渡 */
+    .page-content {
+      opacity: 0;
+      transition: opacity 0.3s ease-in;
+    }
+    
+    .page-loaded .page-content {
+      opacity: 1;
+    }
+    
+    .page-loaded .esp32-loading {
+      opacity: 0;
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body class="bg-neutral-100 text-neutral-800 dark:bg-neutral-dark-100 dark:text-neutral-dark-800">
+  <!-- 新增的ESP32加载界面 -->
+  <div id="esp32-loading" class="esp32-loading">
+    <div class="esp32-spinner"></div>
+    <div class="esp32-loading-text">加载中，请稍候...</div>
+    <div class="loading-progress-container">
+      <div id="loading-progress" class="loading-progress-bar"></div>
+    </div>
+  </div>
+
+  <!-- 主页面内容 -->
+  <div id="page-content" class="page-content p-4 md:p-8 fade-in">
+    <!-- 引导弹窗 -->
+    <div id="guide-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+      <div class="bg-white dark:bg-neutral-dark-200 rounded-xl p-6 max-w-md w-full shadow-xl">
+        <h3 class="text-xl font-bold mb-4">欢迎使用云游戏导航</h3>
+        <p class="text-neutral-700 dark:text-neutral-dark-700 mb-6">在这里可以快速找到并体验各类云游戏平台，无需下载，即点即玩！</p>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <button id="close-guide" class="bg-secondary-light text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-secondary-light/90 transition-all flex-1">开始使用</button>
+          <label class="flex items-center gap-2 text-neutral-700 dark:text-neutral-dark-700 mt-2 sm:mt-0">
+            <input type="checkbox" id="dont-show-again" class="rounded text-secondary-light">
+            <span>不再显示</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 详情弹窗 -->
+    <div id="detail-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+      <div class="bg-white dark:bg-neutral-dark-200 rounded-xl p-6 max-w-md w-full shadow-xl max-h-[80vh] overflow-y-auto">
+        <div class="flex justify-between items-start mb-4">
+          <h3 id="detail-title" class="text-xl font-bold"></h3>
+          <button id="close-detail" class="text-neutral-500 dark:text-neutral-dark-500 hover:text-neutral-700 dark:hover:text-neutral-dark-700">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div id="detail-content" class="text-neutral-700 dark:text-neutral-dark-700"></div>
+      </div>
+    </div>
+
+    <!-- 页面头部 -->
+    <header class="text-center mb-10">
+      <div class="flex justify-between items-center mb-4">
+        <button id="favorite-btn" class="text-neutral-700 dark:text-neutral-dark-700 hover:text-accent-light dark:hover:text-accent-dark transition-colors has-tooltip">
+          <i class="far fa-star"></i>
+          <span class="ml-2 hidden md:inline">收藏</span>
+          <span class="tooltip">收藏本站</span>
+        </button>
+        <button id="theme-toggle" class="text-neutral-700 dark:text-neutral-dark-700 hover:text-secondary-light dark:hover:text-secondary-dark transition-colors has-tooltip">
+          <i class="fas fa-moon dark:hidden"></i>
+          <i class="fas fa-sun hidden dark:inline"></i>
+          <span class="tooltip">切换主题</span>
+        </button>
+      </div>
+      <h1 class="text-3xl md:text-4xl font-bold text-primary-light dark:text-primary-dark mb-2">🎮 云游戏导航</h1>
+      <p class="text-neutral-700 dark:text-neutral-dark-700 text-lg">无需下载，即点即玩</p>
+      
+      <!-- 搜索框 -->
+      <div class="mt-8 mx-auto max-w-2xl relative">
+        <input 
+          type="text" 
+          id="search-input" 
+          placeholder="搜索云游戏平台或游戏..." 
+          class="w-full max-w-2xl px-4 py-3 rounded-lg border border-neutral-200 dark:border-neutral-dark-100 bg-white dark:bg-neutral-dark-200 focus:outline-none focus:ring-2 focus:ring-secondary-light dark:focus:ring-secondary-dark transition-all"
+          aria-label="搜索云游戏平台"
+        >
+        <i class="fas fa-search absolute right-4 top-3.5 text-neutral-400 dark:text-neutral-dark-400"></i>
+        <div id="search-suggestions" class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-neutral-dark-200 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto hidden"></div>
+      </div>
+    </header>
+
+    <!-- 内容容器 -->
+    <main class="max-w-6xl mx-auto">
+      <div id="loading" class="flex justify-center items-center py-12 hidden">
+        <div class="loading-spinner"></div>
+      </div>
+      
+      <div id="no-results" class="hidden text-center py-12">
+        <i class="fas fa-gamepad text-4xl text-neutral-400 dark:text-neutral-dark-400 mb-4"></i>
+        <h3 class="text-xl font-semibold text-neutral-700 dark:text-neutral-dark-700">未找到匹配的游戏</h3>
+        <p class="text-neutral-500 dark:text-neutral-dark-500 mt-2">尝试不同的搜索词</p>
+      </div>
+      
+      <div id="game-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <!-- 云原神卡片 -->
+        <div class="relative game-card" data-title="云原神" data-device="mobile pc" data-price="paid" data-rating="4.8" data-popularity="98">
+          <div class="bg-white dark:bg-neutral-dark-200 rounded-xl overflow-hidden shadow-card card-hover h-full flex flex-col">
+            <div class="relative h-48 bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30">
+              <img 
+                src="https://webstatic.mihoyo.com/common/clgm-web-app/ys/ico/favicon_128.5.6.0.ico" 
+                alt="云原神 Logo"
+                class="w-full h-full object-contain p-4"
+                loading="lazy">
+              <div class="absolute top-3 right-3 flex gap-1">
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">手机</span>
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">电脑</span>
+              </div>
+              <button class="favorite-badge" data-game="云原神" aria-label="收藏云原神">
+                <i class="far fa-star text-neutral-400 dark:text-neutral-dark-400 hover:text-accent-light dark:hover:text-accent-dark"></i>
+              </button>
+            </div>
+            <div class="p-6 flex-1 flex flex-col">
+              <div class="flex justify-between items-start mb-2">
+                <h2 class="text-xl font-bold text-primary-light dark:text-primary-dark">云原神</h2>
+                <div class="flex items-center gap-1 text-yellow-500">
+                  <i class="fas fa-star"></i>
+                  <span>4.8</span>
+                </div>
+              </div>
+              <p class="text-neutral-700 dark:text-neutral-dark-700 mb-4 flex-1">米哈游官方云游戏平台，无需下载，直接在线畅玩开放世界。</p>
+              <div class="flex flex-wrap gap-2 mb-4">
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300">4K画质</span>
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300">开放世界</span>
+              </div>
+              <div class="flex gap-3 mt-auto">
+                <a href="https://ys.mihoyo.com/cloud" target="_blank" class="bg-secondary-light text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-secondary-light/90 hover:-translate-y-1 hover:shadow-lg transition-all flex-1 text-center">
+                  立即体验 <i class="fas fa-arrow-right ml-2"></i>
+                </a>
+                <button class="more-detail-btn p-3 rounded-lg border border-neutral-200 dark:border-neutral-dark-100 hover:bg-neutral-100 dark:hover:bg-neutral-dark-100 transition-colors has-tooltip">
+                  <i class="fas fa-info"></i>
+                  <span class="tooltip">查看详情</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 网易云游戏卡片 -->
+        <div class="relative game-card" data-title="网易云游戏" data-device="mobile pc tv" data-price="free paid" data-rating="4.5" data-popularity="95">
+          <div class="bg-white dark:bg-neutral-dark-200 rounded-xl overflow-hidden shadow-card card-hover h-full flex flex-col">
+            <div class="relative h-48 bg-gradient-to-r from-red-100 to-orange-100 dark:from-red-900/30 dark:to-orange-900/30">
+              <img 
+                src="https://cg.163.com/logo2.png" 
+                alt="网易云游戏 Logo"
+                class="w-full h-full object-contain p-4"
+                loading="lazy">
+              <div class="absolute top-3 right-3 flex gap-1">
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">手机</span>
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">电脑</span>
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300">电视</span>
+              </div>
+              <button class="favorite-badge" data-game="网易云游戏" aria-label="收藏网易云游戏">
+                <i class="far fa-star text-neutral-400 dark:text-neutral-dark-400 hover:text-accent-light dark:hover:text-accent-dark"></i>
+              </button>
+            </div>
+            <div class="p-6 flex-1 flex flex-col">
+              <div class="flex justify-between items-start mb-2">
+                <h2 class="text-xl font-bold text-primary-light dark:text-primary-dark">网易云游戏</h2>
+                <div class="flex items-center gap-1 text-yellow-500">
+                  <i class="fas fa-star"></i>
+                  <span>4.5</span>
+                </div>
+              </div>
+              <p class="text-neutral-700 dark:text-neutral-dark-700 mb-4 flex-1">网易出品，多款热门游戏支持云端畅玩，免安装、跨设备。</p>
+              <div class="flex flex-wrap gap-2 mb-4">
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">多平台</span>
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">低延迟</span>
+              </div>
+              <div class="flex gap-3 mt-auto">
+                <a href="https://cg.163.com" target="_blank" class="bg-secondary-light text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-secondary-light/90 hover:-translate-y-1 hover:shadow-lg transition-all flex-1 text-center">
+                  立即体验 <i class="fas fa-arrow-right ml-2"></i>
+                </a>
+                <button class="more-detail-btn p-3 rounded-lg border border-neutral-200 dark:border-neutral-dark-100 hover:bg-neutral-100 dark:hover:bg-neutral-dark-100 transition-colors has-tooltip">
+                  <i class="fas fa-info"></i>
+                  <span class="tooltip">查看详情</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 咪咕快游卡片 -->
+        <div class="relative game-card" data-title="咪咕快游" data-device="mobile" data-price="free paid" data-rating="4.2" data-popularity="88">
+          <div class="bg-white dark:bg-neutral-dark-200 rounded-xl overflow-hidden shadow-card card-hover h-full flex flex-col">
+            <div class="relative h-48 bg-gradient-to-r from-green-100 to-teal-100 dark:from-green-900/30 dark:to-teal-900/30">
+              <img 
+                src="http://www.migufun.com/middleh5/migu.png?v=2.2" 
+                alt="咪咕快游 Logo"
+                class="w-full h-full object-contain p-4"
+                loading="lazy">
+              <div class="absolute top-3 right-3 flex gap-1">
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">手机</span>
+              </div>
+              <button class="favorite-badge" data-game="咪咕快游" aria-label="收藏咪咕快游">
+                <i class="far fa-star text-neutral-400 dark:text-neutral-dark-400 hover:text-accent-light dark:hover:text-accent-dark"></i>
+              </button>
+            </div>
+            <div class="p-6 flex-1 flex flex-col">
+              <div class="flex justify-between items-start mb-2">
+                <h2 class="text-xl font-bold text-primary-light dark:text-primary-dark">咪咕快游</h2>
+                <div class="flex items-center gap-1 text-yellow-500">
+                  <i class="fas fa-star"></i>
+                  <span>4.2</span>
+                </div>
+              </div>
+              <p class="text-neutral-700 dark:text-neutral-dark-700 mb-4 flex-1">中国移动旗下云游戏平台，5G 加持，多端互通，海量游戏免下载。</p>
+              <div class="flex flex-wrap gap-2 mb-4">
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">5G加速</span>
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300">海量游戏</span>
+              </div>
+              <div class="flex gap-3 mt-auto">
+                <a href="https://migufun.com" target="_blank" class="bg-secondary-light text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-secondary-light/90 hover:-translate-y-1 hover:shadow-lg transition-all flex-1 text-center">
+                  立即体验 <i class="fas fa-arrow-right ml-2"></i>
+                </a>
+                <button class="more-detail-btn p-3 rounded-lg border border-neutral-200 dark:border-neutral-dark-100 hover:bg-neutral-100 dark:hover:bg-neutral-dark-100 transition-colors has-tooltip">
+                  <i class="fas fa-info"></i>
+                  <span class="tooltip">查看详情</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 腾讯START云游戏卡片 -->
+        <div class="relative game-card" data-title="腾讯START云游戏" data-device="pc tv" data-price="free paid" data-rating="4.6" data-popularity="92">
+          <div class="bg-white dark:bg-neutral-dark-200 rounded-xl overflow-hidden shadow-card card-hover h-full flex flex-col">
+            <div class="relative h-48 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30">
+              <img 
+                src="https://start.qq.com/favicon.ico" 
+                alt="腾讯START云游戏 Logo"
+                class="w-full h-full object-contain p-4"
+                loading="lazy">
+              <div class="absolute top-3 right-3 flex gap-1">
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">电脑</span>
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300">电视</span>
+              </div>
+              <button class="favorite-badge" data-game="腾讯START云游戏" aria-label="收藏腾讯START云游戏">
+                <i class="far fa-star text-neutral-400 dark:text-neutral-dark-400 hover:text-accent-light dark:hover:text-accent-dark"></i>
+              </button>
+            </div>
+            <div class="p-6 flex-1 flex flex-col">
+              <div class="flex justify-between items-start mb-2">
+                <h2 class="text-xl font-bold text-primary-light dark:text-primary-dark">腾讯START云游戏</h2>
+                <div class="flex items-center gap-1 text-yellow-500">
+                  <i class="fas fa-star"></i>
+                  <span>4.6</span>
+                </div>
+              </div>
+              <p class="text-neutral-700 dark:text-neutral-dark-700 mb-4 flex-1">腾讯官方云游戏平台，支持多款PC和主机游戏云端畅玩。</p>
+              <div class="flex flex-wrap gap-2 mb-4">
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">高清画质</span>
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-300">主机游戏</span>
+              </div>
+              <div class="flex gap-3 mt-auto">
+                <a href="https://start.qq.com" target="_blank" class="bg-secondary-light text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-secondary-light/90 hover:-translate-y-1 hover:shadow-lg transition-all flex-1 text-center">
+                  立即体验 <i class="fas fa-arrow-right ml-2"></i>
+                </a>
+                <button class="more-detail-btn p-3 rounded-lg border border-neutral-200 dark:border-neutral-dark-100 hover:bg-neutral-100 dark:hover:bg-neutral-dark-100 transition-colors has-tooltip">
+                  <i class="fas fa-info"></i>
+                  <span class="tooltip">查看详情</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 云崩坏星穹铁道卡片 -->
+        <div class="relative game-card" data-title="云崩坏星穹铁道" data-device="mobile pc" data-price="paid" data-rating="4.7" data-popularity="94">
+          <div class="bg-white dark:bg-neutral-dark-200 rounded-xl overflow-hidden shadow-card card-hover h-full flex flex-col">
+            <div class="relative h-48 bg-gradient-to-r from-yellow-100 to-amber-100 dark:from-yellow-900/30 dark:to-amber-900/30">
+              <img 
+                src="https://webstatic.mihoyo.com/common/clgm-web-app/sr/img/logo_home_header.d98f2de5.png" 
+                alt="云崩铁 Logo"
+                class="w-full h-full object-contain p-4"
+                loading="lazy">
+              <div class="absolute top-3 right-3 flex gap-1">
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">手机</span>
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">电脑</span>
+              </div>
+              <button class="favorite-badge" data-game="云崩坏星穹铁道" aria-label="收藏云崩坏星穹铁道">
+                <i class="far fa-star text-neutral-400 dark:text-neutral-dark-400 hover:text-accent-light dark:hover:text-accent-dark"></i>
+              </button>
+            </div>
+            <div class="p-6 flex-1 flex flex-col">
+              <div class="flex justify-between items-start mb-2">
+                <h2 class="text-xl font-bold text-primary-light dark:text-primary-dark">云崩坏星穹铁道</h2>
+                <div class="flex items-center gap-1 text-yellow-500">
+                  <i class="fas fa-star"></i>
+                  <span>4.7</span>
+                </div>
+              </div>
+              <p class="text-neutral-700 dark:text-neutral-dark-700 mb-4 flex-1">米哈游官方云游戏平台，无需下载，在线畅玩回合制</p>
+              <div class="flex flex-wrap gap-2 mb-4">
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300">科幻</span>
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300">回合制</span>
+              </div>
+              <div class="flex gap-3 mt-auto">
+                <a href="https://sr.mihoyo.com/cloud" target="_blank" class="bg-secondary-light text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-secondary-light/90 hover:-translate-y-1 hover:shadow-lg transition-all flex-1 text-center">
+                  立即体验 <i class="fas fa-arrow-right ml-2"></i>
+                </a>
+                <button class="more-detail-btn p-3 rounded-lg border border-neutral-200 dark:border-neutral-dark-100 hover:bg-neutral-100 dark:hover:bg-neutral-dark-100 transition-colors has-tooltip">
+                  <i class="fas fa-info"></i>
+                  <span class="tooltip">查看详情</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 云鸣潮卡片 -->
+        <div class="relative game-card" data-title="云鸣潮" data-device="mobile pc" data-price="free" data-rating="4.4" data-popularity="90">
+          <div class="bg-white dark:bg-neutral-dark-200 rounded-xl overflow-hidden shadow-card card-hover h-full flex flex-col">
+            <div class="relative h-48 bg-gradient-to-r from-gray-100 to-slate-100 dark:from-gray-900/30 dark:to-slate-900/30">
+              <img 
+                src="https://img03.sogoucdn.com/v2/thumb/retype_exclude_gif/ext/awj/q/79/crop/xy/ai/w/128/h/128/resize/w/128?url=https%3A%2F%2Fsyimg.3dmgame.com%2Fuploadimg%2Fico%2F2025%2F0213%2F1739410532301958.jpg&appid=201003&sign=5BFA046079FE034BF1EEA469A38CDA9A&referer=https%3A%2F%2Fshouyou.3dmgame.com%2Fandroid%2F477608.html" 
+                alt="云鸣潮 Logo"
+                class="w-full h-full object-contain p-4"
+                loading="lazy">
+              <div class="absolute top-3 right-3 flex gap-1">
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">手机</span>
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">电脑</span>
+              </div>
+              <button class="favorite-badge" data-game="云鸣潮" aria-label="收藏云鸣潮">
+                <i class="far fa-star text-neutral-400 dark:text-neutral-dark-400 hover:text-accent-light dark:hover:text-accent-dark"></i>
+              </button>
+            </div>
+            <div class="p-6 flex-1 flex flex-col">
+              <div class="flex justify-between items-start mb-2">
+                <h2 class="text-xl font-bold text-primary-light dark:text-primary-dark">云鸣潮</h2>
+                <div class="flex items-center gap-1 text-yellow-500">
+                  <i class="fas fa-star"></i>
+                  <span>4.4</span>
+                </div>
+              </div>
+              <p class="text-neutral-700 dark:text-neutral-dark-700 mb-4 flex-1">库洛官方云游戏，无需下载，畅玩开放世界。</p>
+              <div class="flex flex-wrap gap-2 mb-4">
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-gray-100 text-gray-800 dark:bg-gray-900/50 dark:text-gray-300">开放世界</span>
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-slate-100 text-slate-800 dark:bg-slate-900/50 dark:text-slate-300">动作冒险</span>
+              </div>
+              <div class="flex gap-3 mt-auto">
+                <a href="https://mc.kurogames.com/cloud/#/" target="_blank" class="bg-secondary-light text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-secondary-light/90 hover:-translate-y-1 hover:shadow-lg transition-all flex-1 text-center">
+                  立即体验 <i class="fas fa-arrow-right ml-2"></i>
+                </a>
+                <button class="more-detail-btn p-3 rounded-lg border border-neutral-200 dark:border-neutral-dark-100 hover:bg-neutral-100 dark:hover:bg-neutral-dark-100 transition-colors has-tooltip">
+                  <i class="fas fa-info"></i>
+                  <span class="tooltip">查看详情</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 地铁跑酷卡片 -->
+        <div class="relative game-card" data-title="地铁跑酷网页版" data-device="mobile pc" data-price="free" data-rating="4.3" data-popularity="85">
+          <div class="bg-white dark:bg-neutral-dark-200 rounded-xl overflow-hidden shadow-card card-hover h-full flex flex-col">
+            <div class="relative h-48 bg-gradient-to-r from-orange-100 to-red-100 dark:from-orange-900/30 dark:to-red-900/30">
+              <img 
+                src="https://img.71acg.net/kbyx~sykb/20250731/10505280287" 
+                alt="地铁跑酷网页版 Logo"
+                class="w-full h-full object-contain p-4"
+                loading="lazy">
+              <div class="absolute top-3 right-3 flex gap-1">
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">手机</span>
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">电脑</span>
+              </div>
+              <button class="favorite-badge" data-game="地铁跑酷网页版" aria-label="收藏地铁跑酷网页版">
+                <i class="far fa-star text-neutral-400 dark:text-neutral-dark-400 hover:text-accent-light dark:hover:text-accent-dark"></i>
+              </button>
+            </div>
+            <div class="p-6 flex-1 flex flex-col">
+              <div class="flex justify-between items-start mb-2">
+                <h2 class="text-xl font-bold text-primary-light dark:text-primary-dark">地铁跑酷网页版</h2>
+                <div class="flex items-center gap-1 text-yellow-500">
+                  <i class="fas fa-star"></i>
+                  <span>4.3</span>
+                </div>
+              </div>
+              <p class="text-neutral-700 dark:text-neutral-dark-700 mb-4 flex-1">经典跑酷游戏网页版，无需下载，点击即玩。</p>
+              <div class="flex flex-wrap gap-2 mb-4">
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300">休闲</span>
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">跑酷</span>
+              </div>
+              <div class="flex gap-3 mt-auto">
+                <a href="https://subway-surfers.gg/zh-CN/" target="_blank" class="bg-secondary-light text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-secondary-light/90 hover:-translate-y-1 hover:shadow-lg transition-all flex-1 text-center">
+                  立即体验 <i class="fas fa-arrow-right ml-2"></i>
+                </a>
+                <button class="more-detail-btn p-3 rounded-lg border border-neutral-200 dark:border-neutral-dark-100 hover:bg-neutral-100 dark:hover:bg-neutral-dark-100 transition-colors has-tooltip">
+                  <i class="fas fa-info"></i>
+                  <span class="tooltip">查看详情</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 我的世界网页版卡片 -->
+        <div class="relative game-card" data-title="我的世界网页版" data-device="pc" data-price="free" data-rating="4.5" data-popularity="89">
+          <div class="bg-white dark:bg-neutral-dark-200 rounded-xl overflow-hidden shadow-card card-hover h-full flex flex-col">
+            <div class="relative h-48 bg-gradient-to-r from-green-100 to-lime-100 dark:from-green-900/30 dark:to-lime-900/30">
+              <img 
+                src="https://i-2.minecraftxz.com/2023/0603/bae0b2275ee8484bbad418a142818e6c.jpg" 
+                alt="我的世界 Logo"
+                class="w-full h-full object-contain p-4"
+                loading="lazy">
+              <div class="absolute top-3 right-3 flex gap-1">
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">电脑</span>
+              </div>
+              <button class="favorite-badge" data-game="我的世界网页版" aria-label="收藏我的世界网页版">
+                <i class="far fa-star text-neutral-400 dark:text-neutral-dark-400 hover:text-accent-light dark:hover:text-accent-dark"></i>
+              </button>
+            </div>
+            <div class="p-6 flex-1 flex flex-col">
+              <div class="flex justify-between items-start mb-2">
+                <h2 class="text-xl font-bold text-primary-light dark:text-primary-dark">我的世界网页版</h2>
+                <div class="flex items-center gap-1 text-yellow-500">
+                  <i class="fas fa-star"></i>
+                  <span>4.5</span>
+                </div>
+              </div>
+              <p class="text-neutral-700 dark:text-neutral-dark-700 mb-4 flex-1">经典沙盒游戏网页版，无需下载，畅玩创造模式。</p>
+              <div class="flex flex-wrap gap-2 mb-4">
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">沙盒</span>
+                <span class="px-2 py-1 text-xs rounded-full font-medium bg-lime-100 text-lime-800 dark:bg-lime-900/50 dark:text-lime-300">创造</span>
+              </div>
+              <div class="flex gap-3 mt-auto">
+                <a href="https://play.mc.js.cool/1.8/" target="_blank" class="bg-secondary-light text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-secondary-light/90 hover:-translate-y-1 hover:shadow-lg transition-all flex-1 text-center">
+                  立即体验 <i class="fas fa-arrow-right ml-2"></i>
+                </a>
+                <button class="more-detail-btn p-3 rounded-lg border border-neutral-200 dark:border-neutral-dark-100 hover:bg-neutral-100 dark:hover:bg-neutral-dark-100 transition-colors has-tooltip">
+                  <i class="fas fa-info"></i>
+                  <span class="tooltip">查看详情</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 页面底部 -->
+    <footer class="text-center mt-16 text-neutral-500 dark:text-neutral-dark-500 text-sm">
+      <p>&copy; 2025 云游戏导航 · Made with ❤️ by You or AI</p>
+    </footer>
+  </div>
+
+  <script>
+    // 等待DOM加载完成
+    document.addEventListener('DOMContentLoaded', function() {
+      // 初始化加载进度
+      const loadingElem = document.getElementById('esp32-loading');
+      const progressBar = document.getElementById('loading-progress');
+      const pageContent = document.getElementById('page-content');
+      let progress = 0;
+      
+      // 更新进度函数
+      function updateProgress(value) {
+        progress = Math.min(100, Math.max(0, value));
+        progressBar.style.width = `${progress}%`;
+        
+        if (progress >= 100) {
+          setTimeout(() => {
+            document.body.classList.add('page-loaded');
+            // 延迟移除加载界面以完成动画
+            setTimeout(() => {
+              loadingElem.remove();
+              initializeApp();
+            }, 500);
+          }, 300);
+        }
+      }
+      
+      // 模拟资源加载
+      function simulateLoading() {
+        // 初始进度
+        updateProgress(10);
+        
+        // CSS加载完成
+        setTimeout(() => updateProgress(30), 300);
+        
+        // 关键图片加载
+        const criticalImages = document.querySelectorAll('.game-card:nth-child(-n+4) img');
+        let loadedImages = 0;
+        
+        criticalImages.forEach(img => {
+          if (img.complete) {
+            loadedImages++;
+            updateProgress(30 + (loadedImages / criticalImages.length) * 30);
+          } else {
+            img.onload = () => {
+              loadedImages++;
+              updateProgress(30 + (loadedImages / criticalImages.length) * 30);
+            };
+            img.onerror = () => {
+              loadedImages++;
+              updateProgress(30 + (loadedImages / criticalImages.length) * 30);
+            };
+          }
+        });
+        
+        // 确保最终完成
+        setTimeout(() => {
+          if (progress < 100) updateProgress(100);
+        }, 2000);
+      }
+      
+      // 初始化应用
+      function initializeApp() {
+        // 暗黑模式切换
+        const themeToggle = document.getElementById('theme-toggle');
+        const prefersDarkScheme = window.matchMedia('(prefers-color-scheme: dark)');
+        
+        // 检查本地存储或系统偏好
+        const currentTheme = localStorage.getItem('theme') || 
+                            (prefersDarkScheme.matches ? 'dark' : 'light');
+        document.documentElement.classList.toggle('dark', currentTheme === 'dark');
+        
+        themeToggle.addEventListener('click', () => {
+          const isDark = document.documentElement.classList.toggle('dark');
+          localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        });
+        
+        // 引导弹窗逻辑
+        const guideModal = document.getElementById('guide-modal');
+        const closeGuideBtn = document.getElementById('close-guide');
+        const dontShowAgain = document.getElementById('dont-show-again');
+        
+        // 检查是否首次访问
+        if (!localStorage.getItem('guideShown')) {
+          setTimeout(() => {
+            guideModal.classList.remove('opacity-0', 'pointer-events-none');
+          }, 1000);
+        }
+        
+        closeGuideBtn.addEventListener('click', () => {
+          guideModal.classList.add('opacity-0', 'pointer-events-none');
+          if (dontShowAgain.checked) {
+            localStorage.setItem('guideShown', 'true');
+          }
+        });
+        
+        // 收藏功能
+        function initializeFavorites() {
+          const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
+          
+          document.querySelectorAll('.favorite-badge').forEach(badge => {
+            const gameName = badge.dataset.game;
+            if (favorites[gameName]) {
+              badge.innerHTML = '<i class="fas fa-star text-yellow-400"></i>';
+            } else {
+              badge.innerHTML = '<i class="far fa-star text-neutral-400 dark:text-neutral-dark-400 hover:text-accent-light dark:hover:text-accent-dark"></i>';
+            }
+          });
+        }
+        
+        function toggleFavorite(gameName) {
+          const favorites = JSON.parse(localStorage.getItem('favorites') || '{}');
+          favorites[gameName] = !favorites[gameName];
+          localStorage.setItem('favorites', JSON.stringify(favorites));
+          
+          document.querySelectorAll('.favorite-badge').forEach(badge => {
+            if (badge.dataset.game === gameName) {
+              if (favorites[gameName]) {
+                badge.innerHTML = '<i class="fas fa-star text-yellow-400"></i>';
+              } else {
+                badge.innerHTML = '<i class="far fa-star text-neutral-400 dark:text-neutral-dark-400 hover:text-accent-light dark:hover:text-accent-dark"></i>';
+              }
+            }
+          });
+        }
+        
+        document.querySelectorAll('.favorite-badge').forEach(badge => {
+          badge.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleFavorite(badge.dataset.game);
+          });
+        });
+        
+        // 收藏本站按钮
+        document.getElementById('favorite-btn').addEventListener('click', () => {
+          alert('请使用浏览器快捷键 (Ctrl+D 或 Cmd+D) 收藏本站');
+        });
+        
+        // 详情弹窗逻辑
+        const detailModal = document.getElementById('detail-modal');
+        const closeDetailBtn = document.getElementById('close-detail');
+        const detailTitle = document.getElementById('detail-title');
+        const detailContent = document.getElementById('detail-content');
+        
+        document.querySelectorAll('.more-detail-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const card = e.target.closest('.game-card');
+            const title = card.dataset.title;
+            
+            detailTitle.textContent = title;
+            detailContent.innerHTML = `
+              <div class="flex items-center gap-2 text-yellow-500">
+                <i class="fas fa-star"></i>
+                <span>${card.dataset.rating}</span>
+                <span class="text-neutral-500 dark:text-neutral-dark-500">(${card.dataset.popularity}% 人气)</span>
+              </div>
+              <div class="mt-4">
+                <h4 class="font-semibold mb-2">支持设备</h4>
+                <div class="flex flex-wrap gap-2">
+                  ${card.dataset.device.split(' ').map(device => {
+                    let color = 'blue';
+                    if (device === 'mobile') color = 'blue';
+                    if (device === 'pc') color = 'green';
+                    if (device === 'tv') color = 'purple';
+                    return `<span class="px-2 py-1 text-xs rounded-full font-medium bg-${color}-100 text-${color}-800 dark:bg-${color}-900/50 dark:text-${color}-300">${device === 'mobile' ? '手机' : device === 'pc' ? '电脑' : '电视'}</span>`;
+                  }).join('')}
+                </div>
+              </div>
+              <div class="mt-4">
+                <h4 class="font-semibold mb-2">价格</h4>
+                <span class="px-2 py-1 text-xs rounded-full font-medium ${card.dataset.price === 'free' ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300'}">
+                  ${card.dataset.price === 'free' ? '免费' : '付费'}
+                </span>
+              </div>
+              <div class="mt-4">
+                <p>这里是关于 ${title} 的详细介绍...</p>
+              </div>
+            `;
+            
+            detailModal.classList.remove('opacity-0', 'pointer-events-none');
+          });
+        });
+        
+        closeDetailBtn.addEventListener('click', () => {
+          detailModal.classList.add('opacity-0', 'pointer-events-none');
+        });
+        
+        // 搜索功能
+        const searchInput = document.getElementById('search-input');
+        const searchSuggestions = document.getElementById('search-suggestions');
+        const gameCards = document.querySelectorAll('.game-card');
+        const noResultsElement = document.getElementById('no-results');
+        const loadingElement = document.getElementById('loading');
+        
+        // 搜索建议
+        function updateSearchSuggestions(term) {
+          if (term.length > 0) {
+            const suggestions = Array.from(gameCards)
+              .filter(card => card.dataset.title.toLowerCase().includes(term))
+              .map(card => `<div class="p-3 hover:bg-neutral-100 dark:hover:bg-neutral-dark-100 cursor-pointer" data-title="${card.dataset.title}">${card.dataset.title}</div>`);
+            
+            if (suggestions.length > 0) {
+              searchSuggestions.innerHTML = suggestions.join('');
+              searchSuggestions.classList.remove('hidden');
+            } else {
+              searchSuggestions.classList.add('hidden');
+            }
+          } else {
+            searchSuggestions.classList.add('hidden');
+          }
+        }
+        
+        // 输入事件处理
+        searchInput.addEventListener('input', () => {
+          const term = searchInput.value.trim().toLowerCase();
+          updateSearchSuggestions(term);
+        });
+        
+        // 点击搜索建议
+        searchSuggestions.addEventListener('click', (e) => {
+          const suggestionItem = e.target.closest('[data-title]');
+          if (suggestionItem) {
+            searchInput.value = suggestionItem.dataset.title;
+            searchSuggestions.classList.add('hidden');
+            filterGames();
+          }
+        });
+        
+        // 回车键触发搜索
+        searchInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            filterGames();
+            searchSuggestions.classList.add('hidden');
+          }
+        });
+        
+        // 点击外部隐藏搜索建议
+        document.addEventListener('click', (e) => {
+          if (!searchInput.contains(e.target) && !searchSuggestions.contains(e.target)) {
+            searchSuggestions.classList.add('hidden');
+          }
+        });
+        
+        // 筛选游戏
+        function filterGames() {
+          loadingElement.classList.remove('hidden');
+          
+          setTimeout(() => {
+            const searchTerm = searchInput.value.trim().toLowerCase();
+            
+            let hasResults = false;
+            
+            gameCards.forEach(card => {
+              const titleMatch = !searchTerm || card.dataset.title.toLowerCase().includes(searchTerm);
+              
+              if (titleMatch) {
+                card.style.display = 'block';
+                hasResults = true;
+              } else {
+                card.style.display = 'none';
+              }
+            });
+            
+            // 显示/隐藏无结果提示
+            noResultsElement.classList.toggle('hidden', hasResults);
+            loadingElement.classList.add('hidden');
+          }, 300);
+        }
+        
+        // 初始化
+        initializeFavorites();
+        filterGames();
+      }
+      
+      // 开始加载过程
+      simulateLoading();
+      
+      // 延迟加载非首屏图片
+      setTimeout(() => {
+        const lazyImages = document.querySelectorAll('.game-card:nth-child(n+5) img');
+        lazyImages.forEach(img => {
+          img.loading = 'lazy';
+        });
+      }, 1000);
+    });
+  </script>
+</body>
+</html>
